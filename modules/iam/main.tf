@@ -1,4 +1,4 @@
-# IAM Role for EC2 Instances
+# IAM Role for EC2 Instances (Legacy/Bastion)
 resource "aws_iam_role" "ec2_role" {
   name               = "${var.environment}-ec2-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -22,6 +22,51 @@ data "aws_iam_policy_document" "ec2_assume_role" {
       identifiers = ["ec2.amazonaws.com"]
     }
   }
+}
+
+# IAM Role for ECS Task Execution
+resource "aws_iam_role" "ecs_execution_role" {
+  name               = "${var.environment}-ecs-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.environment}-ecs-execution-role"
+    }
+  )
+}
+
+# IAM Role for ECS Task
+resource "aws_iam_role" "ecs_task_role" {
+  name               = "${var.environment}-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.environment}-ecs-task-role"
+    }
+  )
+}
+
+# ECS Assume Role Policy (used by both Task and Execution roles)
+data "aws_iam_policy_document" "ecs_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+# Attach AWS Managed Policy for ECS Task Execution
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 # IAM Policy for S3 Access
